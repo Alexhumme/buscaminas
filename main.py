@@ -2,12 +2,8 @@ from os import system
 from random import random
 
 # Buscaminas en Terminal
-sx = 20
-sy = 20
-playerPos = {"x": 0, "y": 0}
 
-
-# celda
+# Clase celda
 class Tile:
     def __init__(self, x, y):
         self.mine = random() > 0.8
@@ -16,19 +12,14 @@ class Tile:
         self.number = 0
         self.pos = {"x": x, "y": y}
 
-    def draw(self):  # determinar icono apropiado e imprimirlo
+    def draw(self, playerPos):  # determinar icono apropiado e imprimirlo
         icon = "🟦"
-        if self.flag:
-            icon = "🚩"
+        if self.flag: icon = "🚩"
         if self.checked:
-            if self.mine:
-                icon = "💣"
-            else:
-                icon = self.getNumerIcon()
-        if self.pos == playerPos:
-            icon = f"[{icon}]"
-        else:
-            icon = f" {icon} "
+            if self.mine: icon = "💣"
+            else: icon = self.getNumerIcon()
+        if self.pos == playerPos: icon = f"[{icon}]"
+        else: icon = f" {icon} "
         print(icon, end="")
         return
 
@@ -44,134 +35,136 @@ class Tile:
         if self.number == 8: icon = "8️⃣ "
         return icon
 
+# Clase buscaminas
+class buscaminas:
+    def __init__(self, x = 10, y = 10):
+        self.size = {'x':x,'y':y}
+        self.playerPos = {"x": 0, "y": 0}
+        self.gameover = False
+        self.success = False
+        self.gameMap = None
 
-# generar mapa
-def is_valid_position(x, y):
-    return 0 <= x < sx and 0 <= y < sy
+    def move_player(self, direction):
+        directions = {"s": (0, 1), "w": (0, -1), "d": (1, 0), "a": (-1, 0)}
+        if direction in directions:
+            dx, dy = directions[direction]
+            new_x, new_y = self.playerPos["x"] + dx, self.playerPos["y"] + dy
+            if self.is_valid_position(new_x, new_y):
+                self.playerPos["x"], self.playerPos["y"] = new_x, new_y
 
-def generate_map(sx, sy):
-    gameMap = [[Tile(x, y) for x in range(sx)] for y in range(sy)]
+    def play(self):
+        self.gameover = False
+        self.success = False
+        self.gameMap = self.generate_map()
+        mines_q = self.count_mines()
+        while not self.gameover:
+            flags_q = self.count_flags()
+            key = ""
+            self.clean()
+            current = self.gameMap[self.playerPos["y"]][self.playerPos["x"]]
+            print(f"--- Buscaminas 💣 ---");
+            print(f"💣 : {mines_q}");
+            print(f"🚩 : {flags_q}");
+            self.draw_map()
+            key = input("\nAccion (e: salir, s/w/d/a: mover, z: descubrir, x: poner/quitar bandera): ")
+            if key == "e": self.gameover = True
+            elif key in ["s", "w", "d", "a"]: self.move_player(key)
+            elif key == "z": self.check(current)
+            elif key == "x": current.flag = not current.flag
 
-    for y in range(sy):
-        for x in range(sx):
-            if gameMap[y][x].mine:
-                for dx in range(-1, 2):
-                    for dy in range(-1, 2):
-                        if dx == dy == 0:
-                            continue
-                        new_x, new_y = x + dx, y + dy
-                        if is_valid_position(new_x, new_y):
-                            gameMap[new_y][new_x].number += 1
+            self.success = self.check_success()
+            if (current.checked and current.mine) or self.success:
+                self.gameover = True
 
-    return gameMap
-
-
-# Dibujar Mapa
-def draw_map(gameMap: list):
-    for x in range(sx):
-        print("")
-        for y in range(sy):
-            gameMap[x][y].draw()
-
-
-# actualizar celdas
-def update(): system("cls")
+        self.handle_gameover()
+    # actualizar celdas
+    def clean(self): system("cls")
+    # generar mapa
+    def is_valid_position(self, x, y):
+        return 0 <= x < self.size["x"] and 0 <= y < self.size["y"]
     
-def check(tile: Tile, gameMap):
-    if tile.checked:
-        return
+    def generate_map(self):
+        sx = self.size['x']
+        sy = self.size['y']
+        gameMap = [[Tile(x, y) for x in range(sx)] for y in range(sy)]
+        for y in range(sy):
+            for x in range(sx):
+                if gameMap[y][x].mine:
+                    for dx in range(-1, 2):
+                        for dy in range(-1, 2):
+                            if dx == dy == 0:
+                                continue
+                            new_x, new_y = x + dx, y + dy
+                            if self.is_valid_position(new_x, new_y):
+                                gameMap[new_y][new_x].number += 1
 
-    tile.checked = True
-    tile.flag = False
+        return gameMap
+    # Dibujar Mapa
+    def draw_map(self):
+        for x in range(self.size['x']):
+            print("")
+            for y in range(self.size['y']):
+                self.gameMap[x][y].draw(self.playerPos)
 
-    if tile.number > 0:
-        return
+    def check(self, tile: Tile):
+        if tile.checked:
+            return
 
-    for dx in range(-1, 2):
-        for dy in range(-1, 2):
-            if dx == dy == 0:
-                continue
-            new_x, new_y = tile.pos["x"] + dx, tile.pos["y"] + dy
-            if is_valid_position(new_x, new_y):
-                check(gameMap[new_y][new_x], gameMap)
+        tile.checked = True
+        tile.flag = False
 
+        if tile.number > 0:
+            return
 
-# game over
-def check_success(gameMap):
-    for row in gameMap:
-        for tile in row:
-            if tile.mine:
-                if not tile.flag:
-                    return False
-            else:
-                if not tile.checked:
-                    return False
-    return True
-
-
-def handle_gameover(success, gameMap):
-    if success:
-        print("Ganaste! 🥳🎉")
-    else:
-        for row in gameMap:
+        for dx in range(-1, 2):
+            for dy in range(-1, 2):
+                if dx == dy == 0:
+                    continue
+                new_x, new_y = tile.pos["x"] + dx, tile.pos["y"] + dy
+                if self.is_valid_position(new_x, new_y):
+                    self.check(self.gameMap[new_y][new_x])
+    # game over
+    def check_success(self):
+        for row in self.gameMap:
             for tile in row:
                 if tile.mine:
-                    tile.checked = True
-        update()
-        draw_map(gameMap)
-        print("\nPerdiste... 💀")
+                    if not tile.flag:
+                        return False
+                else:
+                    if not tile.checked:
+                        return False
+        return True
 
-    repeat = input("Otra Vez ? (s): ")
-    if repeat == "s":
-        buscaminas()
-    return
+    def handle_gameover(self):
+        if self.success: print("Ganaste! 🥳🎉")
+        else:
+            for row in self.gameMap:
+                for tile in row:
+                    if tile.mine:
+                        tile.checked = True
+            self.update()
+            self.draw_map()
+            print("\nPerdiste... 💀")
 
+        repeat = input("Otra Vez ? (s): ")
+        if repeat == "s": self.play()
+        return
+    # contar 
+    def count_mines(self):
+        mines_q = 0
+        for row in self.gameMap:
+            for tile in row:
+                if tile.mine:
+                    mines_q += 1
+        return mines_q
+    def count_flags(self):
+        flags_q = 0
+        for row in self.gameMap:
+            for tile in row:
+                if tile.flag:
+                    flags_q += 1
+        return flags_q
 
-# contar 
-def count_mines(gameMap):
-    mines_q = 0
-    for row in gameMap:
-        for tile in row:
-            if tile.mine:
-                mines_q += 1
-    return mines_q
-def count_flags(gameMap):
-    flags_q = 0
-    for row in gameMap:
-        for tile in row:
-            if tile.flag:
-                flags_q += 1
-    return flags_q
+game = buscaminas(3,3)
 
-
-# bucle principal
-def buscaminas():
-    gameover = False
-    success = False
-    gameMap = generate_map(sx, sy)
-    mines_q = count_mines(gameMap)
-    while not gameover:
-        flags_q = count_flags(gameMap)
-        key = ""
-        update()
-        current = gameMap[playerPos["y"]][playerPos["x"]]
-        print(f"--- Buscaminas 💣 ---");
-        print(f"💣 : {mines_q}");
-        print(f"🚩 : {flags_q}");
-        draw_map(gameMap)
-        key = input("\nAccion : ")
-        if key == "e": gameover = True
-        if key == "s": playerPos["y"] += 1
-        if key == "w": playerPos["y"] -= 1
-        if key == "d": playerPos["x"] += 1
-        if key == "a": playerPos["x"] -= 1
-        if key == "z": check(current, gameMap)
-        if key == "x": current.flag = not current.flag
-
-        success = check_success(gameMap)
-        if (current.checked and current.mine) or success:
-            gameover = True
-
-    handle_gameover(success, gameMap)
-
-buscaminas()
+game.play()

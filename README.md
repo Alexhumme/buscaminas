@@ -1,6 +1,6 @@
 # BUSCAMINAS PARA TERMINAL DE PYTHON
 
-Una copia del classico juego "Buscaminas" programado con Python y ejecutado directo en terminal.
+Una copia del clasico juego "Buscaminas" programado con Python y ejecutado directo en terminal.
 Disfruta de este divertido ejercicio de programacion con python y sientete libre de hacer sugerencias y mejoras!
 
 - Requerimientos

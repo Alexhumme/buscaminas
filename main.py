@@ -39,8 +39,8 @@ class Tile:
 
 # Clase buscaminas
 class buscaminas:
-    def __init__(self, x = 10, y = 10):
-        self.size = {'x':x,'y':y}
+    def __init__(self):
+        self.size = 10
         self.playerPos = {"x": 0, "y": 0}
         self.gameover = False
         self.success = False
@@ -54,7 +54,23 @@ class buscaminas:
             if self.is_valid_position(new_x, new_y):
                 self.playerPos["x"], self.playerPos["y"] = new_x, new_y
 
+    def choose_difficulty(self):
+        difficulty = input('''
+-- Nueva partida --
+                           
+(1). Facil 
+(2/otro). Medio
+(3). Dificil
+Escoja el nivel de dificultad: ''')
+        if difficulty == '1': self.size = 5
+        elif difficulty == '3': self.size = 16
+        else: self.size = 10
+        return
+
     def play(self):
+        self.clean()
+        self.choose_difficulty()
+        self.playerPos = {"x": 0, "y": 0}
         self.gameover = False
         self.success = False
         self.gameMap = self.generate_map()
@@ -84,11 +100,10 @@ class buscaminas:
     def clean(self): system("cls")
     # generar mapa
     def is_valid_position(self, x, y):
-        return 0 <= x < self.size["x"] and 0 <= y < self.size["y"]
+        return 0 <= x < self.size and 0 <= y < self.size
     
     def generate_map(self):
-        sx = self.size['x']
-        sy = self.size['y']
+        sx = sy = self.size
         gameMap = [[Tile(x, y) for x in range(sx)] for y in range(sy)]
         for y in range(sy):
             for x in range(sx):
@@ -104,9 +119,9 @@ class buscaminas:
         return gameMap
     # Dibujar Mapa
     def draw_map(self):
-        for x in range(self.size['x']):
+        for x in range(self.size):
             print("")
-            for y in range(self.size['y']):
+            for y in range(self.size):
                 self.gameMap[x][y].draw(self.playerPos)
 
     def check(self, tile: Tile):
@@ -168,6 +183,6 @@ class buscaminas:
                     flags_q += 1
         return flags_q
 
-game = buscaminas(3,3)
+game = buscaminas()
 
 game.play()

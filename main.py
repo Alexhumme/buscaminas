@@ -9,11 +9,13 @@ class Tile:
         self.mine = random() > 0.8
         self.flag = False
         self.checked = False
+        self.meaby = False
         self.number = 0
         self.pos = {"x": x, "y": y}
 
     def draw(self, playerPos):  # determinar icono apropiado e imprimirlo
         icon = "🟦"
+        if self.meaby: icon = "❓"
         if self.flag: icon = "🚩"
         if self.checked:
             if self.mine: icon = "💣"
@@ -66,11 +68,12 @@ class buscaminas:
             print(f"💣 : {mines_q}");
             print(f"🚩 : {flags_q}");
             self.draw_map()
-            key = input("\nAccion (e: salir, s/w/d/a: mover, z: descubrir, x: poner/quitar bandera): ")
+            key = input("\nAccion (e: salir, s/w/d/a: mover, z: descubrir, x: poner/quitar bandera, c: poner/quitar interrogante): ")
             if key == "e": self.gameover = True
             elif key in ["s", "w", "d", "a"]: self.move_player(key)
             elif key == "z": self.check(current)
             elif key == "x": current.flag = not current.flag
+            elif key == "c": current.meaby = not current.meaby
 
             self.success = self.check_success()
             if (current.checked and current.mine) or self.success:
@@ -142,7 +145,7 @@ class buscaminas:
                 for tile in row:
                     if tile.mine:
                         tile.checked = True
-            self.update()
+            self.clean()
             self.draw_map()
             print("\nPerdiste... 💀")
 

@@ -1,6 +1,10 @@
-from os import system
+from os import system, get_terminal_size, terminal_size
 from random import random
 
+def centerText(txt:str):
+    term_w: int = get_terminal_size().columns
+    txt_w: int = len(txt)
+    return txt.rjust(int(term_w/2)+int(txt_w/2))
 # Buscaminas en Terminal
 
 # Clase celda
@@ -14,11 +18,11 @@ class Tile:
         self.pos = {"x": x, "y": y}
 
     def draw(self, playerPos):  # determinar icono apropiado e imprimirlo
-        icon = "🟦"
+        icon = "\033[34m🟦\033[0m"
         if self.meaby: icon = "❓"
-        if self.flag: icon = "🚩"
+        if self.flag: icon = "\033[31m🏳 \033[0m"
         if self.checked:
-            if self.mine: icon = "💣"
+            if self.mine: icon = "\033[31m\033[43m💣\033[0m"
             else: icon = self.getNumerIcon()
         if self.pos == playerPos: icon = f"[{icon}]"
         else: icon = f" {icon} "
@@ -27,15 +31,15 @@ class Tile:
 
     def getNumerIcon(self):  # determinar icono por numero
         icon = "⬜"
-        if self.number == 1: icon = "1️⃣ "
-        if self.number == 2: icon = "2️⃣ "
-        if self.number == 3: icon = "3️⃣ "
-        if self.number == 4: icon = "4️⃣ "
-        if self.number == 5: icon = "5️⃣ "
-        if self.number == 6: icon = "6️⃣ "
-        if self.number == 7: icon = "7️⃣ "
-        if self.number == 8: icon = "8️⃣ "
-        return icon
+        if self.number == 1: icon = "\033[36m1️⃣ "
+        if self.number == 2: icon = "\033[32m2️⃣ "
+        if self.number == 3: icon = "\033[33m3️⃣ "
+        if self.number == 4: icon = "\033[31m4️⃣ "
+        if self.number == 5: icon = "\033[35m5️⃣ "
+        if self.number == 6: icon = "\033[30m\033[33m6️⃣ "
+        if self.number == 7: icon = "\033[30m\033[31m7️⃣ "
+        if self.number == 8: icon = "\033[30m\033[35m8️⃣ "
+        return icon + "\033[0m"
 
 # Clase buscaminas
 class buscaminas:
@@ -44,7 +48,7 @@ class buscaminas:
         self.playerPos = {"x": 0, "y": 0}
         self.gameover = False
         self.success = False
-        self.gameMap = None
+        self.gameMap: list = []
 
     def move_player(self, direction):
         directions = {"s": (0, 1), "w": (0, -1), "d": (1, 0), "a": (-1, 0)}
@@ -55,16 +59,22 @@ class buscaminas:
                 self.playerPos["x"], self.playerPos["y"] = new_x, new_y
 
     def choose_difficulty(self):
-        difficulty = input('''
--- Nueva partida --
-                           
-(1). Facil 
-(2/otro). Medio
-(3). Dificil
-Escoja el nivel de dificultad: ''')
+        term_w: int = get_terminal_size().columns
+        
+        print(centerText("---------------"))
+        print(centerText("| BUSCAMINAS  |"))
+        print(centerText("-------------------"))
+        print(centerText("|  Nueva partida  |"))
+        print(centerText("-------------------"))
+        print(centerText("| 1 | Facil       |"))
+        print(centerText("| 2 | Medio       |"))
+        print(centerText("| 3 | Dificil     |"))
+        print(centerText("-------------------"))
+        
+        difficulty: str = input()
         if difficulty == '1': self.size = 5
+        elif difficulty == '2': self.size = 10
         elif difficulty == '3': self.size = 16
-        else: self.size = 10
         return
 
     def play(self):
@@ -74,17 +84,24 @@ Escoja el nivel de dificultad: ''')
         self.gameover = False
         self.success = False
         self.gameMap = self.generate_map()
-        mines_q = self.count_mines()
         while not self.gameover:
-            flags_q = self.count_flags()
             key = ""
             self.clean()
             current = self.gameMap[self.playerPos["y"]][self.playerPos["x"]]
-            print(f"--- Buscaminas 💣 ---");
-            print(f"💣 : {mines_q}");
-            print(f"🚩 : {flags_q}");
+            
+            self.draw_header() 
+            
             self.draw_map()
-            key = input("\nAccion (e: salir, s/w/d/a: mover, z: descubrir, x: poner/quitar bandera, c: poner/quitar interrogante): ")
+            
+            print("\n")
+            print(centerText("-------------------             -------------"))
+            print(centerText("| s/w/a/d | mover |             | e | salir |"))
+            print(centerText("-------------------             -------------"))
+            print(centerText("-----------------      -----------------------      ----------------------"))
+            print(centerText("| z | descrubir |      | x | poner/quitar 🏳 |      | c | poner/quitar ❓|"))
+            print(centerText("-----------------      -----------------------      ----------------------"))
+            
+            key = input("\n>")
             if key == "e": self.gameover = True
             elif key in ["s", "w", "d", "a"]: self.move_player(key)
             elif key == "z": self.check(current)
@@ -97,7 +114,15 @@ Escoja el nivel de dificultad: ''')
 
         self.handle_gameover()
     # actualizar celdas
-    def clean(self): system("cls")
+    def clean(self): 
+        system("clear")
+        print("\n\n\n\n\n\n\n\n\n")
+
+    def draw_header(self):
+        print(centerText( " ----------------------------"))
+        print(centerText(f"| BUSCAMINAS | 💣 {self.count_mines()} | 🏳  {self.count_flags()} |"))
+        print(centerText( " ----------------------------"))
+
     # generar mapa
     def is_valid_position(self, x, y):
         return 0 <= x < self.size and 0 <= y < self.size
@@ -121,6 +146,8 @@ Escoja el nivel de dificultad: ''')
     def draw_map(self):
         for x in range(self.size):
             print("")
+            for i in range(int(get_terminal_size().columns/2) - int(self.size * 2)): 
+                print(" ", end="") 
             for y in range(self.size):
                 self.gameMap[x][y].draw(self.playerPos)
 
@@ -154,18 +181,24 @@ Escoja el nivel de dificultad: ''')
         return True
 
     def handle_gameover(self):
-        if self.success: print("Ganaste! 🥳🎉")
+        if self.success: print(centerText("Ganaste! ☺ "))
         else:
             for row in self.gameMap:
                 for tile in row:
                     if tile.mine:
                         tile.checked = True
             self.clean()
+            self.draw_header()
             self.draw_map()
-            print("\nPerdiste... 💀")
+            print("\n")
+            print(centerText("Perdiste...  😞"))
 
-        repeat = input("Otra Vez ? (s): ")
-        if repeat == "s": self.play()
+        print(centerText("------------------------"))
+        print(centerText("| jugar de nuevo ? (r) |"))
+        print(centerText("------------------------"))
+        
+        repeat = input("> ")
+        if repeat == "r": self.play()
         return
     # contar 
     def count_mines(self):
